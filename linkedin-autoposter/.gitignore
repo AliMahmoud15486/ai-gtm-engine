@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+sample_card.png
+sample_chart.png
+generated_post_image.png

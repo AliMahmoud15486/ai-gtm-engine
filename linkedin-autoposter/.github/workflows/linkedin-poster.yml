@@ -1,0 +1,42 @@
+name: LinkedIn Autoposter
+
+# Posts the next item from queue/ on a schedule. Mon / Wed / Fri at 08:00 UTC
+# (09:00 Berlin, 11:00 Riyadh, ~03:00 US ET). Adjust the cron as you like.
+# You can also trigger a one-off run manually from the Actions tab (workflow_dispatch).
+on:
+  schedule:
+    - cron: "0 8 * * 1,3,5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # needed to commit the queue/ -> posted/ move back
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Publish next post
+        env:
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+        run: python post_to_linkedin.py
+
+      - name: Commit posted/queue changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "chore: published next LinkedIn post [skip ci]"
+            git push
+          else
+            echo "No changes to commit (queue may be empty)."
+          fi
